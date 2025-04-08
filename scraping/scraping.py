@@ -1,13 +1,11 @@
 import asyncio
 import re
-from time import time
 from datetime import date
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 from sqlalchemy.exc import IntegrityError
 
-from database import GRADE_ASSOCIATION_DICT, Session
 from models.boulder import Boulder, Repetition, Style, User
 from models.area import Area
 from models.grade import Grade
@@ -172,11 +170,14 @@ async def boulder_scraping(session, db_session, boulder_relative_url, area_id):
     number_of_rating = 0
 
     # Lookup for the section containing the rating and repetitions
-    first_bopins = soup.find("div", class_="bopins")
+    first_bopins = soup.find("div", class_="bdetails").find(
+        "div", class_="bopins"
+    )
 
     if first_bopins:
         title = first_bopins.find("strong").get_text()
-        if title == "Appréciation":
+        print(title)
+        if title in ["Appréciation", "Average rating"]:
             rating = first_bopins.find_all("li")[2]
             rating = rating.get_text().strip().split(" ")[0].replace(",", ".")
             number_of_rating = first_bopins.find_all("li")[3]

@@ -2,7 +2,7 @@ import asyncio
 from time import time
 
 import aiohttp
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.orm import aliased
 from database import Session, drop_tables, initialize_empty_db
 from models.boulder import Boulder, Repetition, Style, User
@@ -33,7 +33,7 @@ async def main():
             # await boulder_scraping(
             #     session=session,
             #     db_session=db_session,
-            #     boulder_relative_url="/cuvier/1150.html",
+            #     boulder_relative_url="/occidentale/1532.html",
             #     area_id=1,
             # )
 
@@ -41,18 +41,20 @@ async def main():
                 db_session.query(
                     Boulder.name,
                     Grade.value,
-                    func.count(Boulder.repetitions).label("rep_count"),
+                    Boulder.rating,
                 )
                 .join(Grade, Boulder.grade_id == Grade.id)
-                .join(Repetition, Boulder.id == Repetition.boulder_id)
-                .filter(Grade.correspondence == 25)
-                .group_by(Repetition.boulder_id)
-                .order_by(desc("rep_count"))
+                .filter(
+                    Grade.correspondence == 21, Boulder.number_of_rating > 7
+                )
+                .order_by(desc(Boulder.rating))
                 .limit(10)
                 .all()
             )
+            # query = db_session.scalars(select(Boulder))
             for boulder in query:
                 print(boulder)
+            # print(boulder.id)
     end = time()
 
     print(f"Execution time: {end - start:.4f} seconds")

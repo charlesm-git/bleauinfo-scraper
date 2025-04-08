@@ -59,9 +59,7 @@ def get_grades_as_object():
     """
     grades = []
     for value, correspondence in GRADE_ASSOCIATION_DICT.items():
-        grades.append(
-            Grade(value=value, correspondence=correspondence)
-        )
+        grades.append(Grade(value=value, correspondence=correspondence))
     return grades
 
 
@@ -71,6 +69,7 @@ def initialize_empty_db():
         Base.metadata.create_all(engine)
         session.add_all(grades)
         session.commit()
+
 
 def drop_tables():
     Base.metadata.drop_all(engine)

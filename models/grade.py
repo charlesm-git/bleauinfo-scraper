@@ -24,10 +24,11 @@ class Grade(Base):
         back_populates="slash_grade", foreign_keys="[Boulder.slash_grade_id]"
     )
 
-
     def __repr__(self):
         return f"<Grade : {self.value}, {self.correspondence}>"
 
     @classmethod
     def get_id_from_value(cls, db_session, grade_value):
-        return db_session.scalar(select(cls.id).where(cls.value == grade_value))
+        return db_session.scalar(
+            select(cls.id).where(cls.value == grade_value)
+        )
