@@ -101,8 +101,8 @@ def styles_existance_check(style, db_session):
 
     style_object = Style(style=style)
     db_session.add(style_object)
-    db_session.commit()
-    db_session.refresh(style_object)
+    db_session.flush()
+    # db_session.refresh(style_object)
     return style_object
 
 
@@ -116,8 +116,8 @@ def user_existance_check(user, db_session):
 
     user_object = User(username=user["username"], url=user["url"])
     db_session.add(user_object)
-    db_session.commit()
-    db_session.refresh(user_object)
+    db_session.flush()
+    # db_session.refresh(user_object)
     return user_object
 
 
@@ -176,7 +176,6 @@ async def boulder_scraping(session, db_session, boulder_relative_url, area_id):
 
     if first_bopins:
         title = first_bopins.find("strong").get_text()
-        print(title)
         if title in ["Appréciation", "Average rating"]:
             rating = first_bopins.find_all("li")[2]
             rating = rating.get_text().strip().split(" ")[0].replace(",", ".")
@@ -204,20 +203,20 @@ async def boulder_scraping(session, db_session, boulder_relative_url, area_id):
         # Convert styles names into style objects
         for style in styles:
             try:
-                style = styles_existance_check(
-                    style=style, db_session=db_session
-                )
-                boulder.styles.append(style)
-                db_session.commit()
+                with db_session.begin_nested():
+                    style = styles_existance_check(
+                        style=style, db_session=db_session
+                    )
+                    boulder.styles.append(style)
             except IntegrityError:
-                db_session.rollback()
+                print(f"Style '{style}' duplicated - skipped")
     # Update the setters in the database
     if setters:
         for setter in setters:
             # Convert username into User object
             setter = user_existance_check(user=setter, db_session=db_session)
             boulder.setters.append(setter)
-            db_session.commit()
+            db_session.flush()
     # Scrape and save in the database all the repetition logged
     repetitions = soup.find_all("div", class_="repetition")
 
@@ -236,14 +235,21 @@ async def boulder_scraping(session, db_session, boulder_relative_url, area_id):
             "url": children[1].get("href"),
         }
         repetitor = user_existance_check(user=repetitor, db_session=db_session)
+
         try:
-            repetition = Repetition(
-                boulder_id=boulder.id, user_id=repetitor.id, log_date=log_date
-            )
-            db_session.add(repetition)
-            db_session.commit()
+            with db_session.begin_nested():
+                repetition = Repetition(
+                    boulder_id=boulder.id,
+                    user_id=repetitor.id,
+                    log_date=log_date,
+                )
+                db_session.add(repetition)
         except IntegrityError:
-            db_session.rollback()
+            print(
+                f"Skipped repetition by {repetitor['username']} on {log_date}"
+            )
+
+    db_session.commit()
 
 
 semaphore = asyncio.Semaphore(20)
