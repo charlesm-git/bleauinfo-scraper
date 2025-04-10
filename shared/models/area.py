@@ -1,6 +1,6 @@
 from typing import Optional, List
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, String, Integer
+from sqlalchemy import ForeignKey, String, Integer, select
 
 from shared.models.base import Base
 import shared.models.region
@@ -31,3 +31,8 @@ class Area(Base):
 
     def __repr__(self):
         return f"<Area(name: {self.name}, url: {self.url}, status: {self.status})>"
+
+    @classmethod
+    def get_all(cls, db):
+        areas = db.scalars(select(cls)).all()
+        return areas
